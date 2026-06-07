@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup Monitoring System</title>
+<link href="/css/style2.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Backup Monitoring System</h1>
+    </header>
+
+    <div class="top-bar">
+        <h2>Instances</h2>
+
+        <button class="add-instance-btn">
+            + Add New Instance
+        </button>
+    </div>
+
+    <div class="instance-list">
+
+        <div class="instance-card">
+            <h3>ICARD</h3>
+            <p>10.180.18.2</p>
+        </div>
+
+        <div class="instance-card">
+            <h3>HRMS</h3>
+            <p>10.180.18.5</p>
+        </div>
+
+        <div class="instance-card">
+            <h3>FINANCE</h3>
+            <p>10.180.18.10</p>
+        </div>
+
+    </div>
+
+    <div class="main-content">
+
+        <!-- Instance Details -->
+
+        <div class="card">
+
+            <h2>Instance Details</h2>
+
+            <div class="detail-row">
+                <span>Instance Name</span>
+                <strong>ICARD</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Instance IP</span>
+                <strong>10.180.18.2</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Status</span>
+                <strong class="connected">Connected</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Last Down Time</span>
+                <strong>25-05-2025 10:30 AM</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Last Backup Date</span>
+                <strong>25-05-2026 10:30 AM</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Backup Location</span>
+                <strong>D:/backup/icard.sql</strong>
+            </div>
+
+        </div>
+
+        <!-- Configure Backup -->
+
+        <div class="card">
+
+            <h2>Configure Backup</h2>
+
+            <form>
+
+                <label>Database Type</label>
+                <select>
+                    <option>MySQL</option>
+                    <option>Oracle</option>
+                </select>
+
+                <label>Backup Location</label>
+                <select>
+                    <option>Local Drive</option>
+                    <option>Google Drive</option>
+                    <option>File Server</option>
+                </select>
+
+                <label>Path</label>
+                <input type="text" placeholder="Enter backup path">
+
+                <label>Backup Date & Time</label>
+                <input type="datetime-local">
+
+                <div class="btn-group">
+
+                    <button type="button" class="schedule-btn">
+                        Schedule Backup
+                    </button>
+
+                    <button type="button" class="backup-btn">
+                        Backup Now
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        <!-- Backup Status -->
+
+        <div class="card">
+
+            <h2>Backup Status</h2>
+
+            <div class="detail-row">
+                <span>Last Backup Duration</span>
+                <strong>2 min 3 sec</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>File Size</span>
+                <strong>10 MB</strong>
+            </div>
+
+            <div class="detail-row">
+                <span>Remark</span>
+                <strong class="success">
+                    Backup Completed Successfully
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Add Instance Modal -->
+
+<div class="modal">
+
+    <div class="modal-content">
+
+        <h2>Add New Instance</h2>
+
+        <form>
+
+            <label>Instance Name</label>
+            <input type="text" placeholder="ICARD">
+
+            <label>Instance IP</label>
+            <input type="text" placeholder="10.180.18.2">
+
+            <label>Database Type</label>
+            <select>
+                <option>MySQL</option>
+                <option>Oracle</option>
+            </select>
+
+            <label>Port Number</label>
+            <input type="number" placeholder="3306">
+
+            <div class="modal-buttons">
+
+                <button type="button" class="check-btn">
+                    Check Connection
+                </button>
+
+                <button type="submit" class="submit-btn">
+                    Submit
+                </button>
+
+            </div>
+
+        </form>
+
+        <button class="close-btn">
+            Close
+        </button>
+
+    </div>
+
+</div>
+
+<script src="/js/script.js"></script>
+
+</body>
+</html>
