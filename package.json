@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "ejs-mate": "^4.0.0",
-    "express": "^5.2.1",
-    "mysql2": "^3.22.4"
-  }
-}
