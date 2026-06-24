@@ -1,3 +1,10 @@
+window.addEventListener("pageshow", function () {
+
+    if (!localStorage.getItem("token")) {
+        window.location.href = "login.html";
+    }
+
+});
 /////////////////////////////////////////////////////////
 // 🔐 SECURITY CHECK (JWT instead of loggedIn flag)
 /////////////////////////////////////////////////////////
@@ -35,13 +42,54 @@ let selectedServerId = null;
 // TAB SWITCHING
 /////////////////////////////////////////////////////////
 
-function showTab(tabId) {
+function showTab(tabId, pushState = true) {
 
-    document.getElementById("homeTab").style.display = "none";
-    document.getElementById("instanceTab").style.display = "none";
-    document.getElementById("logsTab").style.display = "none";
+    const role = localStorage.getItem("role");
+
+    if (
+        tabId === "usersTab" &&
+        role !== "admin"
+    ) {
+        alert("Access Denied");
+        return;
+    }
+
+    const tabs = [
+        "homeTab",
+        "reportsTab",
+        "usersTab"
+    ];
+
+    tabs.forEach(id => {
+
+        const el = document.getElementById(id);
+
+        if (el) {
+            el.style.display = "none";
+        }
+
+    });
 
     document.getElementById(tabId).style.display = "block";
+    if (pushState) {
+        history.pushState(
+            { tab: tabId },
+            "",
+            "#" + tabId
+        );
+    }
+
+    // LOAD DROPDOWNS
+    if (tabId === "usersTab") {
+
+        const userSelect =
+            document.getElementById("userSelect");
+
+        if (userSelect.options.length <= 1) {
+            loadUsers();
+        }
+
+    }
 }
 
 /////////////////////////////////////////////////////////
@@ -50,10 +98,12 @@ function showTab(tabId) {
 
 function logout() {
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    //updated
+    localStorage.clear();
+    sessionStorage.clear();
 
     window.location.replace("login.html");
+
 }
 
 /////////////////////////////////////////////////////////
@@ -84,68 +134,42 @@ async function loadServers() {
         let html = "";
 
         servers.forEach(server => {
-
             html += `
-                <div class="card mb-2">
+<div class="instance-card"
+     onclick="loadServerDetails(${server.id})">
 
-                    <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center">
 
-                       <h6>${server.server_name}</h6>
+        <div>
 
-<small>
-IP: ${server.ip_address}
-</small>
+            <div class="server-name">
+                ${server.server_name}
+            </div>
 
-<br>
+            <div class="server-ip">
+                IP: ${server.ip_address}
+            </div>
 
-<small>
-Port: ${server.port_number}
-</small>
+            <div class="server-db">
+                DB: ${server.database_type}
+            </div>
 
-<br>
+        </div>
 
-<small>
-DB: ${server.database_type}
-</small>
+        <div>
 
-<br>
+            ${server.connection_status === "Online"
+                    ? '<span class="text-success">●</span>'
+                    : '<span class="text-danger">●</span>'
+                }
 
-<small>
-Response:
-${server.response_time_ms || "-"} ms
-</small>
+        </div>
 
-<br>
+    </div>
 
-<small>
-Last Check:
-${server.last_checked_time || "-"}
-</small>
-
-<br>
-
-<span class="badge ${
-    server.connection_status === "Online"
-        ? "bg-success"
-        : "bg-danger"
-}">
-    ${server.connection_status}
-</span> 
-
-                        <br>
-
-                        <button
-                            class="btn btn-sm btn-primary mt-2"
-                            onclick="loadServerDetails(${server.id})">
-
-                            View
-
-                        </button>
-
-                    </div>
-
-                </div>
-            `;
+</div>
+`;
+            ;
         });
 
         document.getElementById("instanceList").innerHTML = html;
@@ -194,7 +218,7 @@ async function loadServerDetails(id) {
 
         document.getElementById("lastBackupDate").value =
             server.last_backup_date || "";
-         
+
         document.getElementById("lastDownTime").value =
             server.last_down_time || "";
 
@@ -234,7 +258,7 @@ async function addServer() {
 
     const port_number =
         document.getElementById("portNumber").value;
-     
+
     const db_name =
         document.getElementById("dbName").value;
 
@@ -242,7 +266,7 @@ async function addServer() {
         document.getElementById("dbUsername").value;
 
     const db_password =
-        document.getElementById("dbPassword").value;    
+        document.getElementById("dbPassword").value;
 
     try {
 
@@ -278,7 +302,12 @@ async function addServer() {
 
             loadServers();
 
-            showTab("homeTab");
+            const modal =
+                bootstrap.Modal.getInstance(
+                    document.getElementById("addInstanceModal")
+                );
+
+            modal.hide();
 
         } else {
 
@@ -549,3 +578,306 @@ setInterval(() => {
     loadLogs();
 
 }, 10000);
+
+
+//assign instance function
+async function assignInstance() {
+
+    const token = localStorage.getItem("token");
+
+    const user_id =
+        document.getElementById("userSelect").value;
+
+    const server_id =
+        document.getElementById("instanceSelect").value;
+
+    const res = await fetch(
+        "http://localhost:3000/assign-instance",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+
+            body: JSON.stringify({
+                user_id,
+                server_id
+            })
+        }
+    );
+
+    const data = await res.json();
+
+    //UPDATED
+    if (data.success) {
+
+        alert("Instance Assigned Successfully");
+
+        loadAssignedInstances();
+
+        loadInstancesForAssign();
+
+    }
+}
+
+async function denyInstanceAccess(userId, serverId) {
+
+    if (!confirm("Remove access to this instance?")) {
+        return;
+    }
+
+    const token =
+        localStorage.getItem("token");
+
+    const res = await fetch(
+        "http://localhost:3000/remove-instance-access",
+        {
+            method: "DELETE",
+
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+
+            body: JSON.stringify({
+                user_id: userId,
+                server_id: serverId
+            })
+        }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+
+        alert("Access Removed Successfully");
+
+        loadAssignedInstances();
+
+        loadInstancesForAssign();
+
+    } else {
+
+        alert(data.message || "Failed to remove access");
+
+    }
+}
+
+async function loadUsers() {
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+        "http://localhost:3000/users",
+        {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        }
+    );
+
+    const users = await res.json();
+
+    const select =
+        document.getElementById("userSelect");
+
+    select.innerHTML = `
+        <option value="">
+            Select User
+        </option>
+    `;
+
+    users.forEach(user => {
+
+        select.innerHTML += `
+            <option value="${user.id}">
+                ${user.username}
+            </option>
+        `;
+
+    });
+
+    // Clear table initially
+    document.getElementById("assignedInstancesBody").innerHTML = "";
+
+    // Reset instance dropdown initially
+    document.getElementById("instanceSelect").innerHTML = `
+        <option value="">
+            Select Instance
+        </option>
+    `;
+}
+// showing manage users tab
+window.addEventListener("DOMContentLoaded", () => {
+
+    const role = localStorage.getItem("role");
+
+    if (role !== "admin") {
+
+        const tab =
+            document.getElementById("manageUsersTab");
+
+        if (tab) {
+            tab.style.display = "none";
+        }
+
+    }
+
+});
+
+async function loadInstancesForAssign() {
+
+    const userId =
+        document.getElementById("userSelect").value;
+
+    if (!userId) return;
+
+    const token =
+        localStorage.getItem("token");
+
+    const res = await fetch(
+        `http://localhost:3000/available-instances/${userId}`,
+        {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        }
+    );
+
+    const servers = await res.json();
+
+    const select =
+        document.getElementById("instanceSelect");
+
+    select.innerHTML =
+        '<option value="">Select Instance</option>';
+
+    servers.forEach(server => {
+
+        select.innerHTML += `
+            <option value="${server.id}">
+                ${server.server_name}
+            </option>
+        `;
+
+    });
+
+}
+
+//backward-forward js
+window.addEventListener("pageshow", function (event) {
+
+    if (event.persisted) {
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            window.location.replace("login.html");
+        }
+
+    }
+
+});
+window.addEventListener("popstate", function (event) {
+
+    if (event.state && event.state.tab) {
+
+        showTab(event.state.tab, false);
+
+    } else {
+
+        showTab("homeTab", false);
+
+    }
+
+});
+window.addEventListener("load", function () {
+
+    const tab = location.hash.replace("#", "");
+
+    if (
+        tab === "homeTab" ||
+        tab === "logsTab" ||
+        tab === "usersTab"
+    ) {
+
+        showTab(tab, false);
+
+    } else {
+
+        history.replaceState(
+            { tab: "homeTab" },
+            "",
+            "#homeTab"
+        );
+
+    }
+
+});
+
+
+
+async function loadAssignedInstances() {
+
+    const userId =
+        document.getElementById("userSelect").value;
+
+    const tbody =
+        document.getElementById("assignedInstancesBody");
+
+    if (!userId) {
+
+        tbody.innerHTML = "";
+
+        return;
+    }
+
+    const token =
+        localStorage.getItem("token");
+
+    const res = await fetch(
+        `http://localhost:3000/assigned-instances/${userId}`,
+        {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        }
+    );
+
+    const instances = await res.json();
+
+    tbody.innerHTML = "";
+
+    instances.forEach((instance, index) => {
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${index + 1}</td>
+
+            <td>${instance.server_name}</td>
+
+            <td>
+                <button
+                    class="btn btn-danger btn-sm"
+                    onclick="denyInstanceAccess(${userId}, ${instance.id})">
+
+                    Deny
+
+                </button>
+            </td>
+        </tr>
+    `;
+
+    });
+
+}
+
+function userChanged() {
+
+    loadAssignedInstances();
+    loadInstancesForAssign();
+
+}
+
