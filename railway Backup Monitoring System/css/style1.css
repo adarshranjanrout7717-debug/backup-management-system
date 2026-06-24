@@ -1,0 +1,124 @@
+body{
+    margin:0;
+    padding:0;
+    background:#e9ecef;
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+}
+
+/* HEADER */
+
+.top-header{
+    height:75px;
+    background:#0b3d7a;
+    color:white;
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+    border-bottom:3px solid #f0b400;
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.rail-logo{
+    width:50px;
+    height:50px;
+}
+
+.header-left h2{
+    margin:0;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.header-left small{
+    font-size:13px;
+}
+
+/* MAIN */
+
+.main-wrapper{
+    height:calc(100vh - 110px); /* header + footer */
+    display:flex;
+}
+
+/* IMAGE CARD */
+
+.image-card{
+    width:70%;
+    height:100%;
+    padding:0;
+    margin:0;
+    border-radius:0;
+    box-shadow:none;
+    overflow:hidden;
+}
+
+.image-card img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    /* padding: 10px; */
+}
+
+/* LOGIN CARD */
+
+.login-card{
+    width:30%;
+    height:100%;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+    padding:60px;
+
+    background:white;
+
+    border-radius:0;
+    box-shadow:none;
+}
+
+.login-card h1{
+    text-align:center;
+    color:#0b3d7a;
+    margin-bottom:40px;
+    font-weight:700;
+}
+
+.login-card label{
+    font-weight:600;
+    margin-bottom:8px;
+}
+
+.login-card input{
+    height:50px;
+}
+
+.login-btn{
+    width:100%;
+    height:50px;
+    margin-top:20px;
+    font-size:18px;
+    font-weight:600;
+}
+
+/* FOOTER */
+
+footer{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:35px;
+    background:#0b3d7a;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+}

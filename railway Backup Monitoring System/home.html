@@ -2,225 +2,271 @@
 <html lang="en">
 
 <head>
+    <script>
+        (function () {
+
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+
+                document.documentElement.style.visibility = "hidden";
+
+                location.href = "login.html";
+
+            }
+
+        })();
+    </script>
+
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     
-    <meta http-equiv="Cache-Control"
-      content="no-cache, no-store, must-revalidate">
 
-    <meta http-equiv="Pragma"
-      content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 
-    <meta http-equiv="Expires"
-      content="0">
+    <meta http-equiv="Pragma" content="no-cache">
+
+    <meta http-equiv="Expires" content="0">
 
     <title>Railway Backup Monitoring System</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <link rel="stylesheet" href="css/style.css">
+
 
 </head>
 
 <body class="bg-light">
 
-<div class="bg-primary text-white p-3 shadow">
+    <div class="bg-primary text-white p-3 shadow">
 
-    <h2 class="mb-0">
-        <i class="fa-solid fa-database"></i>
-        Railway Backup Monitoring System
-    </h2>
+        <h2 class="mb-0">
+            <i class="fa-solid fa-database"></i>
+            Railway Backup Monitoring System
+        </h2>
 
-    <small>
-        Real-Time Backup Monitoring & Disaster Recovery
-    </small>
-
-</div>
-
-<div class="container-fluid p-3">
-
-    <!-- Navigation -->
-
-    <div class="card mb-3 shadow-sm">
-
-        <div class="card-body">
-
-            <ul class="nav nav-tabs">
-
-                <li class="nav-item">
-                    <button class="nav-link active"
-                            onclick="showTab('homeTab')">
-                        Home
-                    </button>
-                </li>
-
-                <li class="nav-item">
-                    <button class="nav-link"
-                            onclick="showTab('instanceTab')">
-                        Add New Instance
-                    </button>
-                </li>
-
-                <li class="nav-item">
-                    <button class="nav-link"
-                            onclick="showTab('logsTab')">
-                        Logs
-                    </button>
-                </li>
-
-                <li class="nav-item ms-auto">
-
-                    <button class="btn btn-danger"
-                            onclick="logout()">
-
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        Logout
-
-                    </button>
-
-                </li>
-
-            </ul>
-
-        </div>
+        <small>
+            Real-Time Backup Monitoring & Disaster Recovery
+        </small>
 
     </div>
 
-    <!-- HOME TAB -->
+    <div class="container-fluid pt-2 px-2">
 
-    <div id="homeTab">
+        <!-- Navigation -->
 
-        <div class="row">
+        <div class="card mb-2 shadow-sm">
 
-            <!-- Instance List -->
+            <div class="card-body py-2 px-3">
 
-            <div class="col-lg-3">
+                <ul class="nav nav-tabs align-items-center">
 
-                <div class="card shadow-sm">
+                    <li class="nav-item">
+                        <button class="nav-link active" onclick="showTab('homeTab')">
+                            Home
+                        </button>
+                    </li>
 
-                    <div class="card-header bg-dark text-white">
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="modal" data-bs-target="#addInstanceModal">
 
-                        <h5 class="mb-0">
-                            <i class="fa-solid fa-server"></i>
-                            Instances
-                        </h5>
+                            Add New Instance
 
-                    </div>
+                        </button>
+                    </li>
+                    <li class="nav-item" id="manageUsersTab">
 
-                    <div class="card-body">
+                        <button class="nav-link" onclick="showTab('usersTab')">
 
-                        <div id="instanceList">
+                            Manage Users
 
-                        </div>
+                        </button>
 
-                    </div>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" onclick="showTab('reportsTab')">
+                            Reports
+                        </button>
+                    </li>
 
-                </div>
+                    <li class="nav-item ms-auto">
+
+                        <button class="btn btn-danger" onclick="logout()">
+
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            Logout
+
+                        </button>
+
+                    </li>
+
+                </ul>
 
             </div>
 
-            <!-- Instance Details -->
+        </div>
 
-            <div class="col-lg-9">
+        <!-- HOME TAB -->
 
-                <div class="card shadow-sm">
+        <div id="homeTab">
 
-                    <div class="card-header bg-dark text-white">
+            <div class="dashboard-container">
 
-                        <h5 class="mb-0">
+                <!-- LEFT INSTANCE PANEL -->
+
+                <div class="instance-panel">
+
+                    <div class="section-title">
+                        <i class="fa-solid fa-server"></i>
+                        Instances
+                    </div>
+
+                    <div id="instanceList"></div>
+
+                </div>
+
+                <!-- RIGHT PANEL -->
+
+                <div class="content-panel">
+
+                    <!-- DETAILS -->
+
+                    <div class="details-card">
+
+                        <div class="section-title">
                             Instance Details
-                        </h5>
+                        </div>
+
+                        <div class="row g-3">
+
+                            <!-- LEFT -->
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">Instance Name</label>
+                                <input id="instanceName" class="form-control" readonly>
+
+                                <label class="form-label mt-2">Database Type</label>
+                                <input id="databaseType" class="form-control" readonly>
+
+                                <label class="form-label mt-2">Instance IP</label>
+                                <input id="instanceIp" class="form-control" readonly>
+
+                                <label class="form-label mt-2">Status</label>
+                                <input id="instanceStatus" class="form-control" readonly>
+
+                                <label class="form-label mt-2">Last Down Time</label>
+                                <input id="lastDownTime" class="form-control" readonly>  
+
+                            </div>
+
+                            <!-- RIGHT -->
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Last Backup Location
+                                </label>
+
+                                <input id="lastBackupLocation" class="form-control" readonly>
+
+                                <label class="form-label mt-2">
+                                    Last Backup Date
+                                </label>
+
+                                <input id="lastBackupDate" class="form-control" readonly>
+
+                                <label class="form-label mt-2">
+                                    Last Backup Duration
+                                </label>
+
+                                <input id="backupDuration" class="form-control" readonly>
+
+                                <label class="form-label mt-2">
+                                    Last Backup File Size
+                                </label>
+
+                                <input id="backupSize" class="form-control" readonly>
+
+                                <label class="form-label mt-2">
+                                    Last Backup Remark
+                                </label>
+
+                                <textarea id="backupRemark" class="form-control" rows="4" readonly></textarea>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
-                    <div class="card-body">
+                    <!-- BACKUP SECTION -->
 
-                        <div class="row">
+                    <div class="backup-row">
 
-                            <div class="col-md-6">
+                        <!-- Schedule Backup -->
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Instance Name</label>
-                                    <input id="instanceName"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                        <div class="backup-card">
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Database Type</label>
-                                    <input id="databaseType"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            <h5 class="text-warning">
+                                <i class="fa-solid fa-calendar-days"></i>
+                                Schedule Backup
+                            </h5>
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Instance IP</label>
-                                    <input id="instanceIp"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            <select id="scheduleLocation" class="form-select mb-3">
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Status</label>
-                                    <input id="instanceStatus"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                                <option>Local Drive</option>
+                                <option>Google Drive</option>
+                                <option>File Server</option>
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Down Time</label>
-                                    <input id="lastDownTime"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            </select>
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Backup Location</label>
-                                    <input id="lastBackupLocation"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            <input type="text" id="schedulePath" class="form-control mb-3" placeholder="Backup Path">
 
-                            </div>
+                            <input type="datetime-local" id="scheduleTime" class="form-control mb-3">
 
-                            <div class="col-md-6">
+                            <button class="btn btn-warning w-100" onclick="scheduleBackup()">
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Backup Date</label>
-                                    <input id="lastBackupDate"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                                Schedule Backup
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Backup Duration</label>
-                                    <input id="backupDuration"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            </button>
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Backup File Size</label>
-                                    <input id="backupSize"
-                                           class="form-control"
-                                           readonly>
-                                </div>
+                            <small class="text-danger">
 
-                                <div class="mb-3">
-                                    <label class="fw-bold">Last Backup Remark</label>
+                                If one backup is scheduled,
+                                another backup cannot be scheduled.
 
-                                    <textarea id="backupRemark"
-                                              rows="4"
-                                              class="form-control"
-                                              readonly></textarea>
-                                </div>
+                            </small>
 
-                            </div>
+                        </div>
+
+                        <!-- Backup Now -->
+
+                        <div class="backup-card">
+
+                            <h5 class="text-success">
+                                <i class="fa-solid fa-play"></i>
+                                Backup Now
+                            </h5>
+
+                            <select id="backupLocation" class="form-select mb-3">
+
+                                <option>Local Drive</option>
+                                <option>Google Drive</option>
+                                <option>File Server</option>
+
+                            </select>
+
+                            <input type="text" id="backupPath" class="form-control mb-3" placeholder="Backup Path">
+
+                            <button class="btn btn-success w-100" onclick="startBackup()" style="margin-top: 44px;">
+
+                                Backup Now
+
+                            </button>
 
                         </div>
 
@@ -232,175 +278,59 @@
 
         </div>
 
-        <!-- Backup Section -->
 
-        <div class="row mt-4">
+        <!-- Add Instance Modal - pop-up -->
 
-            <!-- Schedule Backup -->
+        <div class="modal fade" id="addInstanceModal" tabindex="-1">
 
-            <div class="col-md-6">
+            <div class="modal-dialog modal-lg">
 
-                <div class="card shadow-sm">
+                <div class="modal-content">
 
-                    <div class="card-header bg-warning">
+                    <div class="modal-header bg-primary text-white">
 
-                            <button onclick="scheduleBackup()">
-                               Schedule Backup
-                            </button>
-                    
-
-                    </div>
-
-                    <div class="card-body">
-
-                        <select id="scheduleLocation"
-                                class="form-select mb-3">
-
-                            <option>Local Drive</option>
-                            <option>Google Drive</option>
-                            <option>File Server</option>
-
-                        </select>
-
-                        <input type="text"
-                               id="schedulePath"
-                               class="form-control mb-3"
-                               placeholder="Backup Path">
-
-                        <input type="datetime-local"
-                               id="scheduleTime"
-                               class="form-control mb-3">
-
-                        <button class="btn btn-warning w-100"
-                                onclick="scheduleBackup()">
-
-                            Schedule Backup
-
-                        </button>
-
-                        <small class="text-danger d-block mt-3">
-
-                            * If one backup is scheduled then another backup cannot be scheduled.
-
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- Backup Now -->
-
-            <div class="col-md-6">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-header bg-success text-white">
-
-                        <h5 class="mb-0">
-                            <i class="fa-solid fa-play"></i>
-                            Backup Now
+                        <h5 class="modal-title">
+                            Add New Instance
                         </h5>
 
-                    </div>
-
-                    <div class="card-body">
-
-                        <select id="backupLocation"
-                                class="form-select mb-3">
-
-                            <option>Local Drive</option>
-                            <option>Google Drive</option>
-                            <option>File Server</option>
-
-                        </select>
-
-                        <input type="text"
-                               id="backupPath"
-                               class="form-control mb-3"
-                               placeholder="Backup Path">
-
-                        <button class="btn btn-success w-100"
-                                onclick="startBackup()">
-
-                            Backup Now
-
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal">
                         </button>
 
                     </div>
 
-                </div>
+                    <div class="modal-body">
 
-            </div>
+                        <input id="serverName" class="form-control mb-3" placeholder="Instance Name">
 
-        </div>
-
-    </div>
-
-    <!-- ADD INSTANCE TAB -->
-
-    <div id="instanceTab" style="display:none;">
-
-        <div class="card shadow-sm">
-
-            <div class="card-header bg-primary text-white">
-
-                <h5 class="mb-0">
-                    Add New Instance
-                </h5>
-
-            </div>
-
-            <div class="card-body">
-
-                <div class="row">
-
-                    <div class="col-md-6 mx-auto">
-
-                        <input id="serverName"
-                               class="form-control mb-3"
-                               placeholder="Instance Name">
-
-                        <select id="databaseTypeInput"
-                                class="form-select mb-3">
+                        <select id="databaseTypeInput" class="form-select mb-3">
 
                             <option>MySQL</option>
                             <option>Oracle</option>
 
                         </select>
 
-                        <input id="ipAddress"
-                               class="form-control mb-3"
-                               placeholder="Instance IP">
+                        <input id="ipAddress" class="form-control mb-3" placeholder="Instance IP">
 
-                        <input id="portNumber"
-                               class="form-control mb-3"
-                               placeholder="Port Number">
+                        <input id="portNumber" class="form-control mb-3" placeholder="Port Number">
 
-                        <input id="dbName"
-                               class="form-control mb-3"
-                               placeholder="Database Name">
+                        <input id="dbName" class="form-control mb-3" placeholder="Database Name">
 
-                        <input id="dbUsername"
-                               class="form-control mb-3"
-                               placeholder="Database Username">
+                        <input id="dbUsername" class="form-control mb-3" placeholder="Database Username">
 
-                        <input id="dbPassword"
-                               type="password"
-                               class="form-control mb-3"
-                               placeholder="Database Password">       
+                        <input id="dbPassword" type="password" class="form-control mb-3"
+                            placeholder="Database Password">
 
-                        <button
-                               class="btn btn-warning me-2"
-                               onclick="checkConnection()">
+                    </div>
 
-                                 Check Connection
+                    <div class="modal-footer">
+
+                        <button class="btn btn-warning" onclick="checkConnection()">
+
+                            Check Connection
 
                         </button>
 
-                        <button class="btn btn-primary"
-                                onclick="addServer()">
+                        <button class="btn btn-primary" onclick="addServer()">
 
                             Submit
 
@@ -414,20 +344,165 @@
 
         </div>
 
+        <!-- LOGS TAB -->
+
+        
+        <div id="usersTab" style="display:none;">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header bg-primary text-white">
+
+                    <h5 class="mb-0">
+                        User Instance Assignment
+                    </h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <!-- Top Row -->
+                    <div class="row">
+
+                        <!-- User Dropdown -->
+                        <div class="col-md-5">
+
+                            <label>Select User</label>
+
+                            <select id="userSelect" class="form-select" onchange="userChanged()">
+                            </select>
+
+                        </div>
+
+                        <!-- Instance Dropdown -->
+                        <div class="col-md-5">
+
+                            <label>Select Instance</label>
+
+                            <select id="instanceSelect" class="form-select">
+                            </select>
+
+                        </div>
+
+                        <!-- Assign Button -->
+                        <div class="col-md-2 d-flex align-items-end">
+
+                            <button class="btn btn-success w-100" onclick="assignInstance()">
+
+                                Assign
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <hr>
+
+                    <!-- Assigned Instances Table -->
+                    <h5>Assigned Instances</h5>
+
+                    <table class="table table-bordered">
+
+                        <thead>
+
+                            <thead>
+                                <tr>
+                                    <th>Sr. No.</th>
+                                    <th>Instance Name</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                        </thead>
+
+                        <tbody id="assignedInstancesBody">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+    <div id="reportsTab" style="display:none;">
 
-    <!-- LOGS TAB -->
+        <div class="row">
 
-    <div id="logsTab" style="display:none;">
+            <div class="col-md-3">
 
-        <div class="card shadow-sm">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
 
-            <div class="card-header bg-dark text-white">
+                        <h6>Total Backups</h6>
 
-                <h5 class="mb-0">
-                    Backup Logs
-                </h5>
+                        <h2 id="totalBackups">
+                            0
+                        </h2>
 
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+
+                        <h6>Successful</h6>
+
+                        <h2 id="successBackups" class="text-success">
+                            0
+                        </h2>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+
+                        <h6>Failed</h6>
+
+                        <h2 id="failedBackups" class="text-danger">
+                            0
+                        </h2>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+
+                        <h6>Success Rate</h6>
+
+                        <h2 id="successRate">
+                            0%
+                        </h2>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card mt-3">
+
+            <div class="card-header">
+                Backup Report
             </div>
 
             <div class="card-body">
@@ -436,17 +511,19 @@
 
                     <thead>
 
-                    <tr>
-                        <th>ID</th>
-                        <th>Server</th>
-                        <th>Backup Type</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                    </tr>
+                        <tr>
+
+                            <th>Server</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Date</th>
+
+                        </tr>
 
                     </thead>
 
-                    <tbody id="logsContainer">
+                    <tbody id="reportTable">
 
                     </tbody>
 
@@ -458,9 +535,12 @@
 
     </div>
 
-</div>
-
-<script src="js/home.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/home.js"></script>
 
 </body>
+
 </html>
+
+
+

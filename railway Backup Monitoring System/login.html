@@ -13,55 +13,121 @@
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style1.css">
 
 </head>
 
 <body>
 
-<div class="dashboard-container">
+<body>
 
-    <div class="d-flex justify-content-center align-items-center vh-100 w-100">
+<!-- HEADER -->
 
-        <div class="card chart-card p-4" style="width:400px;">
+<header class="top-header">
 
-            <div class="text-center mb-4">
+    <div class="header-left">
 
-                <i class="fa-solid fa-server fa-3x mb-3"></i>
+        <img src="images/railway-logo.png"
+             alt="Railway Logo"
+             class="rail-logo">
 
-                <h2>RBMS Login</h2>
+        <div>
 
-                <p>Railway Backup Monitoring System</p>
+            <h2>Indian Railways</h2>
 
-            </div>
-
-            <input
-                type="text"
-                id="username"
-                class="form-control mb-3"
-                placeholder="Username">
-
-            <input
-                type="password"
-                id="password"
-                class="form-control mb-3"
-                placeholder="Password">
-
-            <button
-                class="btn btn-primary w-100"
-                onclick="login()">
-
-                Login
-
-            </button>
+            <small>
+                Railway Backup Monitoring System
+            </small>
 
         </div>
 
     </div>
 
+</header>
+
+<!-- MAIN CONTENT -->
+
+<div class="main-wrapper">
+
+    <!-- Train Image -->
+
+    <div class="image-card">
+
+        <img src="images/railway.jpg"
+             alt="Train">
+
+    </div>
+
+    <!-- Login Box -->
+
+    <div class="login-card">
+
+        <h1>Login Here..</h1>
+
+        <div class="mb-4">
+
+            <label><i class="fa-solid fa-user"></i> <b>Username</b></label>
+
+            <input
+                type="text"
+                id="username"
+                class="form-control"
+                autocomplete="off"
+                placeholder="Username">
+
+        </div>
+
+        <div class="mb-4">
+
+            <label><i class="fa-solid fa-lock"></i> <b>Password</b></label>
+
+            <input
+                type="password"
+                id="password"
+                class="form-control"
+                autocomplete="new-password"
+                placeholder="Password">
+
+        </div>
+
+        <button
+            class="btn btn-primary login-btn"
+            onclick="login()">
+
+            Login
+
+        </button>
+
+    </div>
+
 </div>
 
+<!-- FOOTER -->
+
+<footer>
+
+    Ministry of Railways | Government of India
+
+</footer>
+
 <script src="js/login.js"></script>
+
+<script>
+window.addEventListener("pageshow", function () {
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+
+    sessionStorage.clear();
+
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+
+});
+</script>
+
+
+</body>
 
 </body>
 </html>

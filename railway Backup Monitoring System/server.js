@@ -23,8 +23,8 @@ app.use(express.static(__dirname));
 const db = mysql.createConnection({
     host: "localhost",
     user: "root",
-    password: "sachin1412",
-    database: "rbms"
+    database: "test",
+    password: "Ritikdas@378"
 });
 
 db.connect((err) => {
@@ -56,31 +56,42 @@ function verifyToken(req, res, next) {
     }
 }
 
-// ------------------- DASHBOARD STATS -------------------
-app.get("/dashboard-stats", verifyToken, (req, res) => {
-
-    const sql = `
-        SELECT
-            (SELECT COUNT(*) FROM servers) AS totalServers,
-            (SELECT COUNT(*) FROM backup_logs WHERE status='Completed') AS successfulBackups,
-            (SELECT COUNT(*) FROM backup_logs WHERE status='Failed') AS failedBackups,
-            (SELECT SUM(
-                CAST(REPLACE(IFNULL(storage,'0 TB'),' TB','') AS DECIMAL(10,2))
-            ) FROM servers) AS totalStorage
-    `;
-
-    db.query(sql, (err, result) => {
-        if (err) return res.json({ success: false });
-        res.json(result[0]);
-    });
-});
-
 // ------------------- SERVERS -------------------
-app.get("/servers", verifyToken, (req, res) => {
-    db.query("SELECT * FROM servers ORDER BY id", (err, result) => {
-        if (err) return res.json([]);
+app.get(
+"/servers",
+verifyToken,
+(req,res)=>{
+
+if(req.user.role === "admin"){
+
+    db.query(
+    "SELECT * FROM servers",
+    (err,result)=>{
         res.json(result);
     });
+
+}
+else{
+
+    const sql = `
+    SELECT s.*
+    FROM servers s
+    JOIN instance_assignments ia
+    ON s.id = ia.server_id
+    WHERE ia.user_id = ?
+    `;
+
+    db.query(
+    sql,
+    [req.user.id],
+    (err,result)=>{
+
+        res.json(result);
+
+    });
+
+}
+
 });
 
 app.post("/add-server", verifyToken, (req, res) => {
@@ -247,14 +258,6 @@ app.post("/add-server", verifyToken, (req, res) => {
         }
     );
 
-});
-// ------------------- DELETE SERVER -------------------
-app.delete("/delete-server/:id", verifyToken, (req, res) => {
-
-    db.query("DELETE FROM servers WHERE id = ?", [req.params.id], (err) => {
-        if (err) return res.json({ success: false });
-        res.json({ success: true });
-    });
 });
 
 // ------------------- BACKUP LOGS -------------------
@@ -564,6 +567,25 @@ app.post("/login", (req, res) => {
     });
 });
 
+function verifyAdmin(
+    req,
+    res,
+    next
+){
+
+    if(req.user.role !== "admin"){
+
+        return res.json({
+            success:false,
+            message:"Admin Access Only"
+        });
+
+    }
+
+    next();
+
+}
+
 // ------------------- CONNECTION CHECK -------------------
 app.post("/check-connection", verifyToken, (req, res) => {
 
@@ -840,3 +862,222 @@ cron.schedule("* * * * *", () => {
 app.listen(3000, () => {
     console.log("Server Running on Port 3000");
 });
+
+
+
+//assigning instance to users
+app.post(
+    "/assign-instance",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        const {
+            user_id,
+            server_id
+        } = req.body;
+
+        db.query(
+            `
+            INSERT INTO instance_assignments
+            (
+                user_id,
+                server_id,
+                assigned_by
+            )
+            VALUES (?, ?, ?)
+            `,
+            [
+                user_id,
+                server_id,
+                req.user.id
+            ],
+            (err) => {
+
+                if (err) {
+
+                    console.log(err);
+
+                    return res.json({
+                        success: false,
+                        message: "Assignment Failed"
+                    });
+
+                }
+
+                res.json({
+                    success: true,
+                    message: "Assigned Successfully"
+                });
+
+            }
+        );
+
+    }
+);
+
+
+
+//dropdown for manage users
+app.get(
+    "/users",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        db.query(
+            `
+            SELECT id, username
+            FROM admin_users
+            WHERE role='user'
+            `,
+            (err, result) => {
+
+                if (err) {
+                    return res.json([]);
+                }
+
+                res.json(result);
+
+            }
+        );
+
+    }
+);
+
+app.get(
+    "/all-servers",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        db.query(
+            `
+            SELECT id, server_name
+            FROM servers
+            ORDER BY server_name
+            `,
+            (err, result) => {
+
+                if (err) {
+                    console.log(err);
+                    return res.json([]);
+                }
+
+                res.json(result);
+
+            }
+        );
+
+    }
+);
+
+
+app.get(
+    "/assigned-instances/:userId",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        const userId = req.params.userId;
+
+        db.query(
+            `
+            SELECT
+                s.id,
+                s.server_name
+            FROM servers s
+            JOIN instance_assignments ia
+                ON s.id = ia.server_id
+            WHERE ia.user_id = ?
+            `,
+            [userId],
+            (err, result) => {
+
+                if (err) {
+                    console.log(err);
+                    return res.json([]);
+                }
+
+                res.json(result);
+            }
+        );
+    }
+);
+
+app.get(
+    "/available-instances/:userId",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        const userId = req.params.userId;
+
+        db.query(
+            `
+            SELECT
+                id,
+                server_name
+            FROM servers
+            WHERE id NOT IN
+            (
+                SELECT server_id
+                FROM instance_assignments
+                WHERE user_id = ?
+            )
+            ORDER BY server_name
+            `,
+            [userId],
+            (err, result) => {
+
+                if (err) {
+                    console.log(err);
+                    return res.json([]);
+                }
+
+                res.json(result);
+
+            }
+        );
+
+    }
+);
+
+app.delete(
+    "/remove-instance-access",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        const { user_id, server_id } = req.body;
+
+        db.query(
+            `
+            DELETE FROM instance_assignments
+            WHERE user_id = ?
+            AND server_id = ?
+            `,
+            [user_id, server_id],
+            (err, result) => {
+
+                if (err) {
+
+                    console.log(err);
+
+                    return res.json({
+                        success: false,
+                        message: err.message
+                    });
+
+                }
+
+                res.json({
+                    success: true,
+                    message: "Access Removed Successfully"
+                });
+
+            }
+        );
+
+    }
+);

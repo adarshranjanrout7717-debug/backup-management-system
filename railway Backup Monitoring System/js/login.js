@@ -25,9 +25,9 @@ async function login() {
             localStorage.setItem("token", data.token);
             localStorage.setItem("role", data.role);
 
-            alert("Login Successful");
+        
 
-            window.location.href= "home.html";
+            window.location.href = "home.html";
 
         } else {
             alert(data.message || "Invalid credentials");
