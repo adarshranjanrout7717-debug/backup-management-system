@@ -90,6 +90,24 @@ function showTab(tabId, pushState = true) {
         }
 
     }
+    // Update active navigation tab
+    document.querySelectorAll(".nav-tabs .nav-link").forEach(btn => {
+        btn.classList.remove("active");
+    });
+
+    const activeBtn = document.querySelector(
+        `.nav-link[onclick="showTab('${tabId}')"]`
+    );
+
+    if (activeBtn) {
+        activeBtn.classList.add("active");
+    }
+
+    //new
+    if (tabId === "reportsTab") {
+        loadReportStats();
+        loadReportTable();
+    }
 }
 
 /////////////////////////////////////////////////////////
@@ -134,42 +152,42 @@ async function loadServers() {
         let html = "";
 
         servers.forEach(server => {
+
             html += `
-<div class="instance-card"
-     onclick="loadServerDetails(${server.id})">
+    <div class="instance-card ${selectedServerId === server.id ? 'active-instance' : ''}"
+         id="instance-${server.id}"
+         onclick="selectInstance(${server.id})">
 
-    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center">
 
-        <div>
+            <div>
 
-            <div class="server-name">
-                ${server.server_name}
+                <div class="server-name">
+                    ${server.server_name}
+                </div>
+
+                <div class="server-ip">
+                    IP: ${server.ip_address}
+                </div>
+
+                <div class="server-db">
+                    DB: ${server.database_type}
+                </div>
+
             </div>
 
-            <div class="server-ip">
-                IP: ${server.ip_address}
-            </div>
-
-            <div class="server-db">
-                DB: ${server.database_type}
-            </div>
-
-        </div>
-
-        <div>
-
-            ${server.connection_status === "Online"
+            <div>
+                ${server.connection_status === "Online"
                     ? '<span class="text-success">●</span>'
                     : '<span class="text-danger">●</span>'
                 }
+            </div>
 
         </div>
 
     </div>
+    `;
 
-</div>
-`;
-            ;
         });
 
         document.getElementById("instanceList").innerHTML = html;
@@ -180,6 +198,25 @@ async function loadServers() {
 
     }
 }
+
+
+function selectInstance(id) {
+
+    selectedServerId = id;
+
+    loadServerDetails(id);
+
+    document.querySelectorAll(".instance-card").forEach(card => {
+        card.classList.remove("active-instance");
+    });
+
+    const selectedCard = document.getElementById(`instance-${id}`);
+
+    if (selectedCard) {
+        selectedCard.classList.add("active-instance");
+    }
+}
+
 
 /////////////////////////////////////////////////////////
 // LOAD SERVER DETAILS
@@ -495,6 +532,8 @@ async function startBackup() {
         );
 
         loadLogs();
+        loadReportStats();
+        loadReportTable();
 
     } else {
 
@@ -799,7 +838,7 @@ window.addEventListener("load", function () {
 
     if (
         tab === "homeTab" ||
-        tab === "logsTab" ||
+        tab === "reportsTab" ||
         tab === "usersTab"
     ) {
 
@@ -881,3 +920,92 @@ function userChanged() {
 
 }
 
+function loadReportTable() {
+
+    fetch("http://localhost:3000/backup-report", {
+        headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+        }
+    })
+        .then(res => res.json())
+        .then(data => {
+
+            const tbody = document.getElementById("reportTable");
+            tbody.innerHTML = "";
+
+            data.forEach(row => {
+
+                tbody.innerHTML += `
+                <tr>
+                    <td>${row.server_name}</td>
+                    <td>${row.backup_type}</td>
+                    <td>${row.status}</td>
+                    <td>${row.progress}%</td>
+                    <td>${new Date(row.created_at).toLocaleString()}</td>
+                </tr>
+            `;
+
+            });
+
+        });
+
+}
+async function loadReportStats() {
+
+    const response = await fetch(
+        "http://localhost:3000/report-stats",
+        {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        }
+    );
+
+    const data = await response.json();
+
+    document.getElementById("totalBackups").innerText =
+        data.total || 0;
+
+    document.getElementById("successBackups").innerText =
+        data.completed || 0;
+
+    document.getElementById("failedBackups").innerText =
+        data.failed || 0;
+
+    const rate =
+        data.total == 0
+            ? 0
+            : Math.round((data.completed / data.total) * 100);
+
+    document.getElementById("successRate").innerText =
+        rate + "%";
+}
+
+
+
+
+const themeToggle = document.getElementById("themeToggle");
+
+// Load saved theme
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark-mode");
+    themeToggle.innerHTML = "☀️ Light Mode";
+}
+
+themeToggle.addEventListener("click", () => {
+
+    document.body.classList.toggle("dark-mode");
+
+    if (document.body.classList.contains("dark-mode")) {
+
+        localStorage.setItem("theme", "dark");
+        themeToggle.innerHTML = "☀️ Light Mode";
+
+    } else {
+
+        localStorage.setItem("theme", "light");
+        themeToggle.innerHTML = "🌙 Dark Mode";
+
+    }
+
+});

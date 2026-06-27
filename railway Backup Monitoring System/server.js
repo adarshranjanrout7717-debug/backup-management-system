@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const mysql = require("mysql2");
+const oracledb = require("oracledb");
 const cors = require("cors");
 const net = require("net");
 const { exec } = require("child_process");
@@ -23,8 +24,8 @@ app.use(express.static(__dirname));
 const db = mysql.createConnection({
     host: "localhost",
     user: "root",
+    password: "Ritikdas@378",
     database: "test",
-    password: "Ritikdas@378"
 });
 
 db.connect((err) => {
@@ -58,22 +59,22 @@ function verifyToken(req, res, next) {
 
 // ------------------- SERVERS -------------------
 app.get(
-"/servers",
-verifyToken,
-(req,res)=>{
+    "/servers",
+    verifyToken,
+    (req, res) => {
 
-if(req.user.role === "admin"){
+        if (req.user.role === "admin") {
 
-    db.query(
-    "SELECT * FROM servers",
-    (err,result)=>{
-        res.json(result);
-    });
+            db.query(
+                "SELECT * FROM servers",
+                (err, result) => {
+                    res.json(result);
+                });
 
-}
-else{
+        }
+        else {
 
-    const sql = `
+            const sql = `
     SELECT s.*
     FROM servers s
     JOIN instance_assignments ia
@@ -81,18 +82,18 @@ else{
     WHERE ia.user_id = ?
     `;
 
-    db.query(
-    sql,
-    [req.user.id],
-    (err,result)=>{
+            db.query(
+                sql,
+                [req.user.id],
+                (err, result) => {
 
-        res.json(result);
+                    res.json(result);
+
+                });
+
+        }
 
     });
-
-}
-
-});
 
 app.post("/add-server", verifyToken, (req, res) => {
 
@@ -270,84 +271,313 @@ app.get("/backup-logs", verifyToken, (req, res) => {
 });
 
 // ------------------- START BACKUP -------------------
+// app.post("/start-backup", verifyToken, (req, res) => {
+
+//     console.log("START BACKUP CLICKED");
+
+//     const {
+//         server_name,
+//         backup_type,
+//         backup_location,
+//         backup_path
+//     } = req.body;
+
+//     db.query(
+//         "SELECT * FROM servers WHERE server_name=?",
+//         [server_name],
+//         async (err, result) => {
+
+//             if (err || result.length === 0) {
+//                 return res.json({
+//                     success: false,
+//                     message: "Server not found"
+//                 });
+//             }
+
+//             const server = result[0];
+
+//             if (!backup_path) {
+//                 return res.json({ success: false, message: "Backup Path Required" });
+//             }
+
+//             try {
+//                 if (!fs.existsSync(backup_path)) {
+//                     fs.mkdirSync(backup_path, { recursive: true });
+//                 }
+//             } catch (err) {
+//                 return res.json({ success: false, message: err.message });
+//             }
+
+//             const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+//             const startTime = Date.now();
+
+//             // ============================================================
+//             // MYSQL BRANCH (unchanged from your existing code)
+//             // ============================================================
+//             if (server.database_type === "MySQL") {
+
+//                 const backupFile = path.join(
+//                     backup_path,
+//                     `${server_name}_${timestamp}.sql`
+//                 );
+
+//                 // 🔐 safer file handling
+//                 const command =
+//                     `"C:\\Program Files\\MySQL\\MySQL Server 9.6\\bin\\mysqldump.exe" --no-tablespaces -h ${server.ip_address} -P ${server.port_number} -u ${server.db_username} -p${server.db_password} ${server.db_name} > "${backupFile}"`;
+
+//                 console.log("Backup File:", backupFile);
+//                 console.log("Command:", command);
+
+//                 exec(command, (error) => {
+
+//                     if (error) {
+//                         console.log(error);
+//                         return res.json({
+//                             success: false,
+//                             message: error.message
+//                         });
+//                     }
+
+//                     finishBackup(backupFile);
+//                 });
+
+//             }
+
+//             // ============================================================
+//             // ORACLE BRANCH (new)
+//             // ============================================================
+//             else if (server.database_type === "Oracle") {
+
+//                 // On this machine, the Oracle Windows service (NT SERVICE\OracleServiceXE)
+//                 // cannot see/write to drives other than C:\ — confirmed by testing.
+//                 // Reject other drives early with a clear message instead of letting
+//                 // it fail deep inside expdp with a confusing ORA-29283 error.
+//                 if (!/^[Cc]:\\/.test(backup_path)) {
+//                     return res.json({
+//                         success: false,
+//                         message: "Oracle backups on this server must use a path on the C: drive (e.g. C:\\RBMS_BACKUPS). The D: drive is not accessible to the Oracle service."
+//                     });
+//                 }
+
+//                 // Oracle dump files must end in .dmp, not .sql
+//                 const dumpFileName = `${server_name}_${timestamp}.dmp`;
+//                 const logFileName = `${server_name}_${timestamp}.log`;
+//                 const backupFile = path.join(backup_path, dumpFileName);
+
+//                 // Oracle needs a DIRECTORY OBJECT inside the database that
+//                 // points at backup_path before expdp can write there.
+//                 // We create/replace it fresh every time so it always matches
+//                 // whatever backup_path the user picked.
+//                 const directoryName = "DPUMP_DYNAMIC_DIR";
+
+//                 try {
+//                     // 1. Connect to the customer's Oracle DB to set up the directory object
+//                     const connection = await oracledb.getConnection({
+//                         user: server.db_username,
+//                         password: server.db_password,
+//                         connectString: `${server.ip_address}:${server.port_number}/${server.db_name}`
+//                     });
+
+//                     await connection.execute(
+//                         `CREATE OR REPLACE DIRECTORY ${directoryName} AS '${backup_path}'`
+//                     );
+
+//                     // No GRANT needed here: the same user that creates the
+//                     // directory is the one using it, and Oracle doesn't
+//                     // allow (or need) granting a privilege to yourself.
+//                     // If you ever connect as a different DBA user to set
+//                     // this up on behalf of server.db_username, add the
+//                     // GRANT back in at that point.
+
+//                     await connection.commit();
+//                     await connection.close();
+
+//                 } catch (oraErr) {
+//                     console.log(oraErr);
+//                     return res.json({
+//                         success: false,
+//                         message: "Failed to prepare Oracle directory: " + oraErr.message
+//                     });
+//                 }
+
+//                 // 2. Now run expdp referencing that directory object (not the raw path)
+//                 const connectString = `//${server.ip_address}:${server.port_number}/${server.db_name}`;
+
+//                 const command =
+//                     `expdp ${server.db_username}/${server.db_password}@${connectString} ` +
+//                     `DIRECTORY=${directoryName} DUMPFILE=${dumpFileName} LOGFILE=${logFileName} ` +
+//                     `SCHEMAS=${server.db_username}`;
+
+//                 console.log("Backup File:", backupFile);
+//                 console.log("Command:", command.replace(server.db_password, "********"));
+
+//                 exec(command, (error) => {
+
+//                     // expdp can return a non-zero exit code even on partial
+//                     // success/warnings, so check the actual file instead of
+//                     // trusting `error` alone.
+//                     if (error && !fs.existsSync(backupFile)) {
+//                         console.log(error);
+//                         return res.json({
+//                             success: false,
+//                             message: error.message
+//                         });
+//                     }
+
+//                     finishBackup(backupFile);
+//                 });
+
+//             }
+
+//             // ============================================================
+//             // UNKNOWN DATABASE TYPE
+//             // ============================================================
+//             else {
+//                 return res.json({
+//                     success: false,
+//                     message: `Unsupported database type: ${server.database_type}`
+//                 });
+//             }
+
+//             // ============================================================
+//             // SHARED COMPLETION LOGIC (logging + DB updates)
+//             // ============================================================
+//             function finishBackup(backupFile) {
+
+//                 const endTime = Date.now();
+//                 const duration = ((endTime - startTime) / 1000).toFixed(2) + " sec";
+
+//                 let sizeMB;
+//                 try {
+//                     const stats = fs.statSync(backupFile);
+//                     sizeMB = (stats.size / 1024 / 1024).toFixed(2) + " MB";
+//                 } catch (statErr) {
+//                     return res.json({
+//                         success: false,
+//                         message: "Backup command ran but output file was not found: " + statErr.message
+//                     });
+//                 }
+
+//                 db.query(`
+//                     INSERT INTO backup_logs
+//                     (server_name, backup_type, status, progress)
+//                     VALUES (?, ?, ?, ?)
+//                 `, [server_name, backup_type, "Completed", 100]);
+
+//                 db.query(`
+//                     UPDATE servers
+//                     SET
+//                         last_backup_date = NOW(),
+//                         last_backup_location = ?,
+//                         last_backup_duration = ?,
+//                         last_backup_size = ?,
+//                         last_backup_remark = ?
+//                     WHERE server_name = ?
+//                 `, [backup_path, duration, sizeMB, "Backup Successful", server_name]);
+
+//                 res.json({
+//                     success: true,
+//                     message: "Backup Created Successfully",
+//                     file: backupFile
+//                 });
+//             }
+//         }
+//     );
+// });
 app.post("/start-backup", verifyToken, (req, res) => {
 
     console.log("START BACKUP CLICKED");
 
     const {
-    server_name,
-    backup_type,
-    backup_location,
-    backup_path
-   } = req.body;
+        server_name,
+        backup_type,
+        backup_location,
+        backup_path
+    } = req.body;
 
-db.query(
-    "SELECT * FROM servers WHERE server_name=?",
-    [server_name],
-    (err, result) => {
+    db.query(
+        "SELECT * FROM servers WHERE server_name=?",
+        [server_name],
+        (err, result) => {
 
-        if (err || result.length === 0) {
+            if (err || result.length === 0) {
 
-            return res.json({
-                success: false,
-                message: "Server not found"
-            });
+                return res.json({
+                    success: false,
+                    message: "Server not found"
+                });
 
-        }
+            }
 
-        const server = result[0];
+            const server = result[0];
 
-    if (!backup_path) {
-        return res.json({ success: false, message: "Backup Path Required" });
-    }
+            if (!backup_path) {
+                return res.json({ success: false, message: "Backup Path Required" });
+            }
 
-    try {
-        if (!fs.existsSync(backup_path)) {
-            fs.mkdirSync(backup_path, { recursive: true });
-        }
-    } catch (err) {
-        return res.json({ success: false, message: err.message });
-    }
+            try {
+                if (!fs.existsSync(backup_path)) {
+                    fs.mkdirSync(backup_path, { recursive: true });
+                }
+            } catch (err) {
+                return res.json({ success: false, message: err.message });
+            }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-    const backupFile = path.join(
-        backup_path,
-        `${server_name}_${timestamp}.sql`
-    );
+            const backupFile = path.join(
+                backup_path,
+                `${server_name}_${timestamp}.sql`
+            );
 
-    // 🔐 safer file handling
-   
-   const command =
-`"C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe" --no-tablespaces -h ${server.ip_address} -P ${server.port_number} -u ${server.db_username} -p${server.db_password} ${server.db_name} > "${backupFile}"`;
+            // 🔐 safer file handling
 
-    const startTime = Date.now();
+            const command =
+                `"C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe" --no-tablespaces -h ${server.ip_address} -P ${server.port_number} -u ${server.db_username} -p${server.db_password} ${server.db_name} > "${backupFile}"`;
 
-    console.log("Backup File:", backupFile);
-    console.log("Command:", command);
+            const startTime = Date.now();
 
-    exec(command, (error) => {
+            console.log("Backup File:", backupFile);
+            console.log("Command:", command);
 
-        if (error) {
-        console.log(error);
+            exec(command, (error) => {
 
-        return res.json({
-            success: false,
-            message: error.message
-        });
-    }
+                if (error) {
 
-        const endTime = Date.now();
+                    console.log(error);
 
-const duration =
-    ((endTime - startTime) / 1000).toFixed(2) + " sec";
+                    let msg = "Backup Failed";
 
-const stats = fs.statSync(backupFile);
+                    if (error.message.includes("10060")) {
+                        msg = "Instance is unreachable. Please check the IP address or network connection.";
+                    }
+                    else if (error.message.includes("1045")) {
+                        msg = "Invalid database username or password.";
+                    }
+                    else if (error.message.includes("1130")) {
+                        msg = "Remote connections are not allowed for this MySQL server.";
+                    }
+                    else if (error.message.includes("1044")) {
+                        msg = "Database access denied.";
+                    }
 
-const sizeMB =
-    (stats.size / 1024 / 1024).toFixed(2) + " MB";
+                    return res.json({
+                        success: false,
+                        message: msg
+                    });
+                }
 
-db.query(`
+                const endTime = Date.now();
+
+                const duration =
+                    ((endTime - startTime) / 1000).toFixed(2) + " sec";
+
+                const stats = fs.statSync(backupFile);
+
+                const sizeMB =
+                    (stats.size / 1024 / 1024).toFixed(2) + " MB";
+
+                db.query(`
     INSERT INTO backup_logs
     (
         server_name,
@@ -357,15 +587,15 @@ db.query(`
     )
     VALUES (?, ?, ?, ?)
 `,
-[
-    server_name,
-    backup_type,
-    "Completed",
-    100
-]);
+                    [
+                        server_name,
+                        backup_type,
+                        "Completed",
+                        100
+                    ]);
 
-db.query(
-`
+                db.query(
+                    `
 UPDATE servers
 SET
     last_backup_date = NOW(),
@@ -375,22 +605,22 @@ SET
     last_backup_remark = ?
 WHERE server_name = ?
 `,
-[
-    backup_path,
-    duration,
-    sizeMB,
-    "Backup Successful",
-    server_name
-]
-);
+                    [
+                        backup_path,
+                        duration,
+                        sizeMB,
+                        "Backup Successful",
+                        server_name
+                    ]
+                );
 
-res.json({
-    success: true,
-    message: "Backup Created Successfully",
-    file: backupFile
-});
-    });
-});
+                res.json({
+                    success: true,
+                    message: "Backup Created Successfully",
+                    file: backupFile
+                });
+            });
+        });
 });
 
 // ------------------- REPORT STATS -------------------
@@ -409,6 +639,30 @@ app.get("/report-stats", verifyToken, (req, res) => {
         if (err) return res.json({ success: false });
         res.json(result[0]);
     });
+});
+app.get("/backup-report", verifyToken, (req, res) => {
+
+    db.query(
+        `SELECT
+            server_name,
+            backup_type,
+            status,
+            progress,
+            created_at
+        FROM backup_logs
+        ORDER BY created_at DESC`,
+        (err, result) => {
+
+            if (err) {
+                return res.json({
+                    success: false
+                });
+            }
+
+            res.json(result);
+        }
+    );
+
 });
 
 // ------------------- UPDATE SERVER -------------------
@@ -563,7 +817,7 @@ app.post("/login", (req, res) => {
             success: true,
             token,
             role: user.role
-        }); 
+        });
     });
 });
 
@@ -571,13 +825,13 @@ function verifyAdmin(
     req,
     res,
     next
-){
+) {
 
-    if(req.user.role !== "admin"){
+    if (req.user.role !== "admin") {
 
         return res.json({
-            success:false,
-            message:"Admin Access Only"
+            success: false,
+            message: "Admin Access Only"
         });
 
     }
@@ -627,28 +881,28 @@ function monitorInstances() {
 
             servers.forEach(server => {
 
-    if (
-        !server.ip_address ||
-        !server.port_number
-    ) {
+                if (
+                    !server.ip_address ||
+                    !server.port_number
+                ) {
 
-        console.log(
-            `Skipping ${server.server_name} - Missing IP/Port`
-        );
+                    console.log(
+                        `Skipping ${server.server_name} - Missing IP/Port`
+                    );
 
-        return;
-    }
+                    return;
+                }
 
-    const startTime = Date.now();
+                const startTime = Date.now();
 
-    const socket = new net.Socket();
+                const socket = new net.Socket();
 
-    socket.setTimeout(3000);
+                socket.setTimeout(3000);
 
-    socket.connect(
-        Number(server.port_number),
-        server.ip_address,
-        () => {
+                socket.connect(
+                    Number(server.port_number),
+                    server.ip_address,
+                    () => {
 
                         const responseTime =
                             Date.now() - startTime;
@@ -747,66 +1001,66 @@ function executeScheduledBackups() {
 
                 if (now >= scheduleTime) {
 
-    db.query(
-        "SELECT * FROM servers WHERE server_name=?",
-        [backup.server_name],
-        (err, result) => {
+                    db.query(
+                        "SELECT * FROM servers WHERE server_name=?",
+                        [backup.server_name],
+                        (err, result) => {
 
-            if (err || result.length === 0) {
+                            if (err || result.length === 0) {
 
-                console.log("Server not found");
+                                console.log("Server not found");
 
-                db.query(
-                    `UPDATE scheduled_backups
+                                db.query(
+                                    `UPDATE scheduled_backups
                      SET status='Failed'
                      WHERE id=?`,
-                    [backup.id]
-                );
+                                    [backup.id]
+                                );
 
-                return;
-            }
+                                return;
+                            }
 
-            const server = result[0];
+                            const server = result[0];
 
-            console.log(
-                "Executing Scheduled Backup:",
-                backup.server_name
-            );
+                            console.log(
+                                "Executing Scheduled Backup:",
+                                backup.server_name
+                            );
 
-            const timestamp =
-                new Date()
-                    .toISOString()
-                    .replace(/[:.]/g, "-");
+                            const timestamp =
+                                new Date()
+                                    .toISOString()
+                                    .replace(/[:.]/g, "-");
 
-            const backupFile =
-                path.join(
-                    backup.backup_path,
-                    `${backup.server_name}_${timestamp}.sql`
-                );
+                            const backupFile =
+                                path.join(
+                                    backup.backup_path,
+                                    `${backup.server_name}_${timestamp}.sql`
+                                );
 
-            const command =
-`"C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe" --no-tablespaces -h ${server.ip_address} -P ${server.port_number} -u ${server.db_username} -p${server.db_password} ${server.db_name} > "${backupFile}"`;
+                            const command =
+                                `"C:\\Program Files\\MySQL\\MySQL Server 9.6\\bin\\mysqldump.exe" --no-tablespaces -h ${server.ip_address} -P ${server.port_number} -u ${server.db_username} -p${server.db_password} ${server.db_name} > "${backupFile}"`;
 
-            console.log("Command:", command);
+                            console.log("Command:", command);
 
-            exec(command, (error) => {
+                            exec(command, (error) => {
 
-                if (error) {
+                                if (error) {
 
-                    console.log(error);
+                                    console.log(error);
 
-                    db.query(
-                        `UPDATE scheduled_backups
+                                    db.query(
+                                        `UPDATE scheduled_backups
                          SET status='Failed'
                          WHERE id=?`,
-                        [backup.id]
-                    );
+                                        [backup.id]
+                                    );
 
-                    return;
-                }
+                                    return;
+                                }
 
-                db.query(
-                    `
+                                db.query(
+                                    `
                     INSERT INTO backup_logs
                     (
                         server_name,
@@ -816,26 +1070,26 @@ function executeScheduledBackups() {
                     )
                     VALUES (?, ?, ?, ?)
                     `,
-                    [
-                        backup.server_name,
-                        backup.backup_type,
-                        "Completed",
-                        100
-                    ]
-                );
+                                    [
+                                        backup.server_name,
+                                        backup.backup_type,
+                                        "Completed",
+                                        100
+                                    ]
+                                );
 
-                db.query(
-                    `
+                                db.query(
+                                    `
                     UPDATE scheduled_backups
                     SET status='Completed'
                     WHERE id=?
                     `,
-                    [backup.id]
-                );
+                                    [backup.id]
+                                );
 
-                console.log(
-                    "Scheduled Backup Completed"
-                                 );
+                                console.log(
+                                    "Scheduled Backup Completed"
+                                );
 
                             });
 
@@ -852,8 +1106,8 @@ function executeScheduledBackups() {
 }
 
 
-cron.schedule("* * * * *", () => { 
-   
+cron.schedule("* * * * *", () => {
+
     executeScheduledBackups();
 
 });
@@ -1081,3 +1335,65 @@ app.delete(
 
     }
 );
+
+// async function getOracleConnection() {
+
+//     return await oracledb.getConnection({
+//         user: "test_oracle_db",
+//         password: "test123",
+//         connectString: "10.180.23.82:1521/XEPDB1"
+//     });
+
+// }
+
+
+
+// //------------------- Oracle connection block -------------------
+
+
+// async function test() {
+//     const conn = await oracledb.getConnection({
+//         user: "test_oracle_db",
+//         password: "test123",
+//         connectString: "10.180.23.82:1521/XEPDB1"
+//     });
+
+//     console.log("Connected");
+//     await conn.close();
+// }
+
+// test();
+
+// //------------------- oracle route -------------------
+// app.get("/oracle-test", async (req, res) => {
+
+//     let conn;
+
+//     try {
+
+//         conn = await getOracleConnection();
+
+//         const result = await conn.execute(
+//             "SELECT * FROM EMPLOYEES",
+//             [],
+//             {
+//                 outFormat: oracledb.OUT_FORMAT_OBJECT
+//             }
+//         );
+
+//         res.json(result.rows);
+
+//     } catch (err) {
+
+//         console.log(err);
+//         res.status(500).send(err.message);
+
+//     } finally {
+
+//         if (conn) {
+//             await conn.close();
+//         }
+
+//     }
+
+// });
